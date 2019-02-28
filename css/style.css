@@ -1,0 +1,95 @@
+body, html {
+    font-size: 15px;
+    font-family: "Helvetica", "Verdana", "Arial", sans-serif;
+    text-align: justify;
+    margin: 5px;
+}
+h1 {
+    font-size: 1.3rem;
+}
+table {
+    border-collapse: collapse;
+}
+.box {
+	display: inline-block;
+	background-color: silver;
+	border-radius: 0.5rem;
+	line-height: 1.2rem;
+	padding: 0.5rem;
+
+	font-size: 1rem;
+	font-weight: normal;
+}
+.box p {
+	margin: 0.7rem;
+	text-align: left;
+}
+input[type=text], input[type=password] {
+	/* text-transform: uppercase; */
+	padding: 0.33rem;
+	/* width: 10rem; */
+	height: 1rem;
+
+	font-size: 1rem;
+} 
+textarea {
+	padding: 0.33rem;
+	width: 40rem;
+	height: 10rem;
+    font-size: 1rem;
+    overflow: auto;
+}
+input[type=button], input[type=submit], input[type=reset], button[type="submit"] {
+	/* text-transform: uppercase; */
+	padding: 0.33rem;
+
+	color: black;
+	font-size: 1rem;
+	font-weight: normal;
+}
+.pre {
+	font-family: monospace;
+}
+
+select {
+	font-size: 1rem;
+}
+ul {
+	list-style-type: none;
+	padding: 0;
+}
+a {
+	text-decoration: none;
+}
+a, a:visited {
+	color: dodgerblue;
+}
+a:hover {
+	text-decoration: underline;
+}
+div.view_items{
+    margin: 0.5rem;
+}
+#success {
+	color: green;
+	font-weight: bold;
+}
+#error {
+	color: red;
+	font-weight: bold;
+}
+#fb {
+	display: flex;
+	flex-direction: column;
+	
+	min-height: calc( 100vh - 15px );
+	/* justify-content: center ; */
+	align-items: center;
+	text-align: center;
+}
+#fb > * {
+	flex: none;
+}
+.loginout {
+	font-size: 1rem;
+}
