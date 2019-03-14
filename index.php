@@ -2,6 +2,8 @@
 
 <?php
 require_once('pdo.php');
+require_once('functions.php');
+require_once('imports.php');
 
 session_start();
 ?>
@@ -11,7 +13,7 @@ session_start();
 <head>
 	<meta charset='UTF-8'>
 	<link rel='stylesheet' href='css/style.css'>
-	<title> Resume Registry - 553c3741 </title>
+	<title> Resume Registry - 52c8b8d5 </title>
 </head>
 
 <body>
@@ -24,21 +26,13 @@ session_start();
             } else {
                 echo '<p class="loginout"> <a href="logout.php">Log out</a> </p>';
             }
-            ?> 
+            ?>
 		</header>
         
-        
         <?php
-        if( isset($_SESSION['msg']) && $_SESSION['msg'] != false ){
-            echo "<div class='view_items'>";
-            echo    ! isset($_SESSION['error']) ? "<p id='success'>" : "<p id='error'>";
-            echo       $_SESSION['msg'];
-            echo    "</p>";
-
-            unset($_SESSION['msg']);
-            unset($_SESSION['error']);
-            echo "</div>";
-        }
+        echo "<div class='view_items'>";
+        flashMessage();
+        echo "</div>";
         ?>
 
         <div class='view_items'>
@@ -84,5 +78,7 @@ session_start();
         }
         ?>
 	</div>
+
+    <?php importJQ(); ?>
 </body>
 </html>

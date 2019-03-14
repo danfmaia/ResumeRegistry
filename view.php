@@ -22,7 +22,10 @@ require_once('pdo.php');
 
 		<div class='box'>
 			<?php
-            $stmt = $pdo->query( 'SELECT first_name, last_name, email, headline, summary FROM Profile WHERE profile_id = '.$_GET['profile_id'] );
+            $stmt = $pdo->query( 
+                'SELECT first_name, last_name, email, headline, summary
+                FROM Profile
+                WHERE profile_id = '.$_GET['profile_id'] );
             if( $stmt->rowCount() == 0 ){
                 echo '<p> Wrong profile id </p>';
             } else {
@@ -33,6 +36,23 @@ require_once('pdo.php');
                 echo '<p> Headline: <br>'.$row['headline'].'<p>';
                 echo '<p> Summary: <br>'.$row['summary'].'<p>';
             }
+
+            $stmt = $pdo->query( 
+                'SELECT year, description
+                FROM Position
+                WHERE profile_id = '.$_GET['profile_id'] );
+            if ($stmt->rowCount() === 1) {
+                echo '<p style="margin-bottom:0"> Position: </p>';
+                echo '<ul style="margin-top:0">';
+            } elseif( $stmt->rowCount() > 1 ){
+                echo '<p style="margin-bottom:0"> Positions: </p>';
+                echo '<ul style="margin-top:0">';
+            }
+            while( $row = $stmt->fetch(PDO::FETCH_ASSOC) ){
+                echo '<li>'.$row['year'].': '.$row['description'].'</li>';
+            }
+            if( $stmt->rowCount() > 0 )
+                echo '</ul>';
 			?>
         </div>
         <p>

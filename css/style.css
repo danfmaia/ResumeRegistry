@@ -55,8 +55,9 @@ select {
 	font-size: 1rem;
 }
 ul {
-	list-style-type: none;
-	padding: 0;
+	/* list-style-type: none;
+    padding: 0; */
+    text-align: left;
 }
 a {
 	text-decoration: none;
@@ -70,14 +71,16 @@ a:hover {
 div.view_items{
     margin: 0.5rem;
 }
+
 #success {
 	color: green;
 	font-weight: bold;
 }
 #error {
-	color: red;
+	color: firebrick;
 	font-weight: bold;
 }
+
 #fb {
 	display: flex;
 	flex-direction: column;

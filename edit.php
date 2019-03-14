@@ -3,6 +3,7 @@
 <?php
 require_once('pdo.php');
 require_once('functions.php');
+require_once('imports.php');
 
 session_start();
 
@@ -18,42 +19,24 @@ if( isset($_POST['cancel']) ){
 check_profile_ownage( $pdo );
 
 if(isset($_POST['save']) ){
-    $_SESSION['msg'] = false;
-    $_error = false;
-
-    if( strlen($_POST['email']) < 1
+    // $_SESSION['error'] = false;
+    
+/*     if( strlen($_POST['email']) < 1
     || strlen($_POST['first_name']) < 1
     || strlen($_POST['last_name']) < 1
     || strlen($_POST['headline']) < 1
     || strlen($_POST['summary']) < 1 ){
-        $_SESSION['msg'] = "All fields are required";
+        $_SESSION['error'] = "All fields are required";
         header('Location: edit.php?profile_id='.$_REQUEST['profile_id']);
         return;
-    }
+    } */
 
-    $count = count_atSigns( $_POST['email'] );
-    if( $count !== 1 ){
-        $_SESSION['msg'] = 'Email address must contain @';
-        $_error = true;
-    } elseif( strlen($_POST['first_name']) < 1 ){
-        $_SESSION['msg'] = 'First name is required';
-        $_error = true;
-    } elseif( strlen($_POST['last_name']) < 1 ){
-        $_SESSION['msg'] = 'Last name is required';
-        $_error = true;
-    } elseif( strlen($_POST['headline']) < 1 ){
-        $_SESSION['msg'] = 'Headline is required';
-        $_error = true;
-    } elseif( strlen($_POST['summary']) < 1 ){
-        $_SESSION['msg'] = 'Summary is required';
-        $_error = true;
-    }
-    if( $_error == true ){
-        $_SESSION['first_name'] = $_POST['first_name'];
-        $_SESSION['last_name'] = $_POST['last_name'];
-        $_SESSION['email'] = $_POST['email'];
-        $_SESSION['headline'] = $_POST['headline'];
-        $_SESSION['summary'] = $_POST['summary'];
+    $_SESSION['error'] = validateProfile();
+    if( $_SESSION['error'] == false )
+        $_SESSION['error'] = validatePosition();
+
+    if( $_SESSION['error'] == true ){
+        fromPostToSession();
         header('Location: edit.php?profile_id='.$_REQUEST['profile_id']);
         return;
     }
@@ -66,22 +49,47 @@ if(isset($_POST['save']) ){
                                     headline = :headline,
                                     summary = :summary
                                 WHERE profile_id = :profile_id' );
-        $stmt->execute(
-            array(
-                ':profile_id' => $_POST['profile_id'],
-                ':first_name' => $_POST['first_name'],
-                ':last_name' => $_POST['last_name'],
-                ':email' => $_POST['email'],
-                ':headline' => $_POST['headline'],
-                ':summary' => $_POST['summary'])
+        $stmt->execute(array(
+            ':profile_id' => $_POST['profile_id'],
+            ':first_name' => $_POST['first_name'],
+            ':last_name' => $_POST['last_name'],
+            ':email' => $_POST['email'],
+            ':headline' => $_POST['headline'],
+            ':summary' => $_POST['summary'])
         );
+
+        // Clears out the old position entries
+        $stmt = $pdo->prepare( 'DELETE FROM Position WHERE profile_id=:pid' );
+        $stmt->execute(array( ':pid' => $_REQUEST['profile_id'] ));
+
+        // Insert the new or altered position entries. This snippet is almost identical
+        // to the add.php snippet that inserts Position data.
+        $rank = 1;
+        for( $i=1; $i<=9; $i++ ){
+            if( ! isset($_POST['year'.$i]) ) continue;
+            if( ! isset($_POST['desc'.$i]) ) continue;
+
+            $stmt = $pdo->prepare('INSERT INTO
+                Position (profile_id, rank, year, description)
+                VALUES (:profile_id, :rank, :year, :descr)');
+            $stmt->execute(array(
+                ':profile_id' => $_REQUEST['profile_id'],
+                ':rank' => $rank,
+                ':year' => $_POST['year'.$i],
+                ':descr' => $_POST['desc'.$i])
+            );
+            
+            $rank++;
+        }
+
+
     } catch( Exception $ex ){
         echo("Internal error, please contact support");
         // Why error4?
         error_log("error4.php, SQL error=".$ex->getMessage());
         return;
     }
-    $_SESSION['msg'] = 'Profile saved';
+    $_SESSION['success'] = 'Profile saved';
     header('Location: index.php');
     return;
 }
@@ -89,7 +97,7 @@ if(isset($_POST['save']) ){
 $stmt = $pdo->query( 'SELECT * FROM Profile WHERE profile_id = '.$_GET['profile_id'] );
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 if( $row === false ) {
-    $_SESSION['msg'] = 'Bad value for profile_id';
+    $_SESSION['error'] = 'Bad value for profile_id';
     header( 'Location: index.php' );
     return;
 }
@@ -100,6 +108,15 @@ $last_name = htmlentities( $row['last_name']);
 $email = htmlentities( $row['email']);
 $headline = htmlentities( $row['headline']);
 $summary = htmlentities( $row['summary']);
+
+$stmt = $pdo->query( 'SELECT * FROM Position WHERE profile_id = '.$profile_id );
+$i = 1;
+while( $row = $stmt->fetch(PDO::FETCH_ASSOC) ){
+    $year[$i] = htmlentities( $row['year']);
+    $desc[$i] = htmlentities( $row['description']);
+    $i++;
+}
+$maxRank = $i - 1;
 ?>
 
 <html lang='en'>
@@ -107,13 +124,13 @@ $summary = htmlentities( $row['summary']);
 <head>
 	<meta charset='UTF-8'>
 	<link rel='stylesheet' href='css/style.css'>
-	<title> Resume Registry - 553c3741 </title>
+	<title> Resume Registry - 52c8b8d5 </title>
 </head>
 
 <body>
 	<div id='fb'>
 		<header>
-			<h1> Editing Deleting <?= htmlentities($row["first_name"]).' '.htmlentities($row["last_name"]) ?>'s profile </h1>
+			<h1> Editing <?= $first_name.' '.$last_name ?>'s profile </h1>
 		</header>
 
 		<form class='box' method='post'>
@@ -138,21 +155,37 @@ $summary = htmlentities( $row['summary']);
 				<label for='summary'>Summary: </label><br>
 				<textarea rows='8' cols='80' name='summary' id='summary' size='80'><?= $summary ?></textarea>
 			</p>
+            <p>
+                <label for="addPos">Position: </label><input type="submit" id="addPos" value="+">
+            </p>
+            <div id="position_fields">
+                <?php
+                for( $i=1; $i<=$maxRank; $i++ ){
+                    echo '
+                        <div id="position'.$i.'">
+                            <p>Year:
+                                <input type="text" name="year'.$i.'" value="'.$year[$i].'" />
+                                <input type="button" value="-"
+                                    onclick="$(\'#position'.$i.'\').remove();return false;">
+                            </p>
+                            <textarea name="desc'.$i.'" rows="8" cols="80">'.$desc[$i].'</textarea>
+                        </div>';
+                }
+                ?>
+            </div>
 			<p>
                 <input type="submit" class="button" name="save" value="Save" >
                 <input type="submit" class="button" name="cancel" value="Cancel">
 			</p>
-			<?php
-			if( isset($_SESSION['msg']) && $_SESSION['msg'] != false ){
-                echo "<p id='error'>";
-                echo    $_SESSION['msg'];
-                echo "</p>";
-
-                unset($_SESSION['msg']);
-			}
+            <?php
+            flashMessage();
+            unsetSessionVars();
             ?>
-            <?= '' ?>
 		</form>
 	</div>
+
+    <?php importJQ(); ?>
+    <script> let countPos = <?php echo json_encode($maxRank); ?>; </script>
+    <script src="js/script.js"></script>
 </body>
 </html>

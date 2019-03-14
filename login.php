@@ -73,7 +73,7 @@ if( isset($_POST['email']) ) {
 <head>
 	<meta charset='UTF-8'>
 	<link rel='stylesheet' href='css/style.css'>
-	<title> Resume Registry - 553c3741 </title>
+	<title> Resume Registry - 52c8b8d5 </title>
 </head>
 
 <body>
@@ -104,12 +104,12 @@ if( isset($_POST['email']) ) {
                 echo "</p>";
                 unset( $_SESSION['msg'] );
 				
-				if( isset($_SESSION['wrong_password']) && $_SESSION['wrong_password'] === true ){
+				/* if( isset($_SESSION['wrong_password']) && $_SESSION['wrong_password'] === true ){
 					echo "<p id='login_tip'>";
 					echo    "The password is the programming language used for this application concatenated with <span class='pre'>123</span>.";
                     echo "</p>";
                 }
-                unset( $_SESSION['wrong_password'] );
+                unset( $_SESSION['wrong_password'] ); */
 			}
             ?>
             
