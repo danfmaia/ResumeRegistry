@@ -3,7 +3,6 @@
 <?php
 require_once('pdo.php');
 require_once('functions.php');
-require_once('imports.php');
 
 session_start();
 ?>
@@ -13,7 +12,7 @@ session_start();
 <head>
 	<meta charset='UTF-8'>
 	<link rel='stylesheet' href='css/style.css'>
-	<title> Resume Registry - 52c8b8d5 </title>
+	<title> Resume Registry - cc7d159d </title>
 </head>
 
 <body>
@@ -78,7 +77,5 @@ session_start();
         }
         ?>
 	</div>
-
-    <?php importJQ(); ?>
 </body>
 </html>

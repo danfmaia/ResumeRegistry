@@ -90,19 +90,35 @@ function validatePosition() {
     return false;
 }
 
+function validateEducation() {
+    for( $i=1; $i<=9; $i++ ){
+        if( ! isset($_POST['edu_year'.$i]) ) continue;
+        if( ! isset($_POST['edu_school'.$i]) ) continue;
+
+        $year = $_POST['edu_year'.$i];
+        $school = $_POST['edu_school'.$i];
+
+        if( strlen($year) == 0 || strlen($school) == 0 ){
+            return "All fields are required";
+        }
+        else if( ! is_numeric($year) ){
+            return "Education year must be numeric";
+        }
+    }
+
+    return false;
+}
+
 function unsetSessionVars() {
     unset( $_SESSION['first_name'] );
     unset( $_SESSION['last_name'] );
     unset( $_SESSION['headline'] );
     unset( $_SESSION['summary'] );
 
-    for( $i=1; $i<=9; $i++ ){
-        if( ! isset($_POST['year'.$i]) ) continue;
-        if( ! isset($_POST['desc'.$i]) ) continue;
-
-        unset( $_SESSION['year'.$i] );
-        unset( $_SESSION['desc'.$i] );
-    }
+    unset( $_SESSION['year'] );
+    unset( $_SESSION['desc'] );
+    unset( $_SESSION['edu_year'] );
+    unset( $_SESSION['edu_school'] );
 }
 
 // Copies data from POST to SESSION.
@@ -113,11 +129,109 @@ function fromPostToSession() {
     $_SESSION['headline'] = $_POST['headline'];
     $_SESSION['summary'] = $_POST['summary'];
 
+    unset( $_SESSION['year'] );
+    unset( $_SESSION['desc'] );
     for( $i=1; $i<=9; $i++ ){
         if( ! isset($_POST['year'.$i]) ) continue;
         if( ! isset($_POST['desc'.$i]) ) continue;
 
-        $_SESSION['year'.$i] = $_POST['year'.$i];
-        $_SESSION['desc'.$i] = $_POST['desc'.$i];
+        $_SESSION['year'][] = $_POST['year'.$i];
+        $_SESSION['desc'][] = $_POST['desc'.$i];
     }
+
+    unset( $_SESSION['edu_year'] );
+    unset( $_SESSION['edu_school'] );
+    for( $i=1; $i<=9; $i++ ){
+        if( ! isset($_POST['edu_year'.$i]) ) continue;
+        if( ! isset($_POST['edu_school'.$i]) ) continue;
+
+        $_SESSION['edu_year'][] = $_POST['edu_year'.$i];
+        $_SESSION['edu_school'][] = $_POST['edu_school'.$i];
+    }
+}
+
+function insertPosition( $pdo, $profile_id ){
+    $rank = 1;
+    
+    for( $i=1; $i<=9; $i++ ){
+        if( ! isset($_POST['year'.$i]) ) continue;
+        if( ! isset($_POST['desc'.$i]) ) continue;
+
+        $stmt = $pdo->prepare(
+            'INSERT INTO Position (profile_id, rank, year, description)
+            VALUES (:profile_id, :rank, :year, :description)'
+        );
+        $stmt->execute(array(
+            ':profile_id' => $profile_id,
+            ':rank' => $rank,
+            ':year' => $_POST['year'.$i],
+            ':description' => $_POST['desc'.$i])
+        );
+        
+        $rank++;
+    }
+}
+
+function insertEducation( $pdo, $profile_id ){
+    $rank = 1;
+
+    for ($i=1; $i<=9; $i++) {
+        if (! isset($_POST['edu_year'.$i])) {
+            continue;
+        }
+        if (! isset($_POST['edu_school'.$i])) {
+            continue;
+        }
+        
+        $stmt = $pdo->query(
+            'SELECT institution_id
+            FROM Institution
+            WHERE name = "'.$_POST['edu_school'.$i].'"'
+        );
+        $msg = $stmt->rowCount();
+        if ($stmt->rowCount() === 0) {
+            $stmt = $pdo->prepare(
+                'INSERT INTO Institution (name)
+                VALUES (:name)'
+            );
+            $stmt->execute(
+                array(
+                ':name' => $_POST['edu_school'.$i])
+            );
+            $institution_id = $pdo->lastInsertId();
+        } else {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            $institution_id = $row['institution_id'];
+        }
+
+        $stmt = $pdo->prepare(
+            'INSERT INTO Education (profile_id, institution_id, rank, year)
+            VALUES (:profile_id, :institution_id, :rank, :year)'
+        );
+        $stmt->execute(
+            array(
+            ':profile_id' => $profile_id,
+            ':institution_id' => $institution_id,
+            ':rank' => $rank,
+            ':year' => $_POST['edu_year'.$i])
+        );
+        
+        $rank++;
+    }
+}
+
+function parseData() {
+    $year = json_encode( isset($_SESSION['year']) ? $_SESSION['year'] : [] );
+    $desc = json_encode( isset($_SESSION['desc']) ? $_SESSION['desc'] : [] );
+    $edu_year = json_encode( isset($_SESSION['edu_year']) ? $_SESSION['edu_year'] : [] );
+    $edu_school = json_encode( isset($_SESSION['edu_school']) ? $_SESSION['edu_school'] : [] );
+
+    echo
+    "let data = [];
+    data = {
+        'year': $year,
+        'desc': $desc,
+        'edu_year': $edu_year,
+        'edu_school': $edu_school
+    };\n";
 }

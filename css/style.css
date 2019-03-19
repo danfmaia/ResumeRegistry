@@ -96,3 +96,8 @@ div.view_items{
 .loginout {
 	font-size: 1rem;
 }
+
+.optional_fields {
+    margin-top: 1.3rem;
+    margin-bottom: 1.3rem;
+}

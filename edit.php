@@ -3,7 +3,6 @@
 <?php
 require_once('pdo.php');
 require_once('functions.php');
-require_once('imports.php');
 
 session_start();
 
@@ -21,7 +20,7 @@ check_profile_ownage( $pdo );
 if(isset($_POST['save']) ){
     // $_SESSION['error'] = false;
     
-/*     if( strlen($_POST['email']) < 1
+    if( strlen($_POST['email']) < 1
     || strlen($_POST['first_name']) < 1
     || strlen($_POST['last_name']) < 1
     || strlen($_POST['headline']) < 1
@@ -29,11 +28,13 @@ if(isset($_POST['save']) ){
         $_SESSION['error'] = "All fields are required";
         header('Location: edit.php?profile_id='.$_REQUEST['profile_id']);
         return;
-    } */
+    }
 
     $_SESSION['error'] = validateProfile();
     if( $_SESSION['error'] == false )
         $_SESSION['error'] = validatePosition();
+    if( $_SESSION['error'] == false )
+        $_SESSION['error'] = validateEducation();
 
     if( $_SESSION['error'] == true ){
         fromPostToSession();
@@ -58,30 +59,16 @@ if(isset($_POST['save']) ){
             ':summary' => $_POST['summary'])
         );
 
-        // Clears out the old position entries
+        // Clears out the old Position entries.
         $stmt = $pdo->prepare( 'DELETE FROM Position WHERE profile_id=:pid' );
         $stmt->execute(array( ':pid' => $_REQUEST['profile_id'] ));
 
-        // Insert the new or altered position entries. This snippet is almost identical
-        // to the add.php snippet that inserts Position data.
-        $rank = 1;
-        for( $i=1; $i<=9; $i++ ){
-            if( ! isset($_POST['year'.$i]) ) continue;
-            if( ! isset($_POST['desc'.$i]) ) continue;
-
-            $stmt = $pdo->prepare('INSERT INTO
-                Position (profile_id, rank, year, description)
-                VALUES (:profile_id, :rank, :year, :descr)');
-            $stmt->execute(array(
-                ':profile_id' => $_REQUEST['profile_id'],
-                ':rank' => $rank,
-                ':year' => $_POST['year'.$i],
-                ':descr' => $_POST['desc'.$i])
-            );
-            
-            $rank++;
-        }
-
+        // Clears out the old Education entries.
+        $stmt = $pdo->prepare( 'DELETE FROM Education WHERE profile_id=:pid' );
+        $stmt->execute(array( ':pid' => $_REQUEST['profile_id'] ));
+        
+        insertPosition( $pdo, $_REQUEST['profile_id'] );
+        insertEducation( $pdo, $_REQUEST['profile_id'] );
 
     } catch( Exception $ex ){
         echo("Internal error, please contact support");
@@ -93,6 +80,8 @@ if(isset($_POST['save']) ){
     header('Location: index.php');
     return;
 }
+
+// Get profile basic info.
 
 $stmt = $pdo->query( 'SELECT * FROM Profile WHERE profile_id = '.$_GET['profile_id'] );
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -109,14 +98,34 @@ $email = htmlentities( $row['email']);
 $headline = htmlentities( $row['headline']);
 $summary = htmlentities( $row['summary']);
 
-$stmt = $pdo->query( 'SELECT * FROM Position WHERE profile_id = '.$profile_id );
-$i = 1;
+// Get profile Position info.
+
+$stmt = $pdo->query(
+    'SELECT *
+    FROM Position
+    WHERE profile_id = '.$profile_id );
+$i = 0;
 while( $row = $stmt->fetch(PDO::FETCH_ASSOC) ){
-    $year[$i] = htmlentities( $row['year']);
-    $desc[$i] = htmlentities( $row['description']);
+    $_SESSION['year'][$i] = htmlentities( $row['year']);
+    $_SESSION['desc'][$i] = htmlentities( $row['description']);
     $i++;
 }
-$maxRank = $i - 1;
+$pos_maxRank = $i;
+
+// Get profile Education info.
+
+$stmt = $pdo->query(
+    'SELECT T1.profile_id, T1.rank, T1.year, T2.name
+    FROM Education as T1 INNER JOIN Institution as T2
+    ON T1.institution_id = T2.institution_id
+    WHERE profile_id = '.$profile_id );
+$i = 0;
+while( $row = $stmt->fetch(PDO::FETCH_ASSOC) ){
+    $_SESSION['edu_year'][$i] = htmlentities( $row['year']);
+    $_SESSION['edu_school'][$i] = htmlentities( $row['name']);
+    $i++;
+}
+$edu_maxRank = $i;
 ?>
 
 <html lang='en'>
@@ -124,7 +133,8 @@ $maxRank = $i - 1;
 <head>
 	<meta charset='UTF-8'>
 	<link rel='stylesheet' href='css/style.css'>
-	<title> Resume Registry - 52c8b8d5 </title>
+    <?php require_once('imports.php'); ?>
+	<title> Resume Registry </title>
 </head>
 
 <body>
@@ -155,37 +165,34 @@ $maxRank = $i - 1;
 				<label for='summary'>Summary: </label><br>
 				<textarea rows='8' cols='80' name='summary' id='summary' size='80'><?= $summary ?></textarea>
 			</p>
+
+            <p>
+                <label for="addEdu">Education: </label><input type="submit" id="addEdu" value="+">
+            </p>
+            <div id="education_fields"></div>
+
             <p>
                 <label for="addPos">Position: </label><input type="submit" id="addPos" value="+">
             </p>
-            <div id="position_fields">
-                <?php
-                for( $i=1; $i<=$maxRank; $i++ ){
-                    echo '
-                        <div id="position'.$i.'">
-                            <p>Year:
-                                <input type="text" name="year'.$i.'" value="'.$year[$i].'" />
-                                <input type="button" value="-"
-                                    onclick="$(\'#position'.$i.'\').remove();return false;">
-                            </p>
-                            <textarea name="desc'.$i.'" rows="8" cols="80">'.$desc[$i].'</textarea>
-                        </div>';
-                }
-                ?>
-            </div>
+            <div id="position_fields"></div>
+
 			<p>
-                <input type="submit" class="button" name="save" value="Save" >
+                <input type="submit" class="button" name="save" id="add" value="Save" >
                 <input type="submit" class="button" name="cancel" value="Cancel">
 			</p>
-            <?php
-            flashMessage();
-            unsetSessionVars();
-            ?>
+            <?php flashMessage(); ?>
 		</form>
 	</div>
 
-    <?php importJQ(); ?>
-    <script> let countPos = <?php echo json_encode($maxRank); ?>; </script>
+    <script>
+    let countPos = <?= isset($_SESSION['year']) ? count($_SESSION['year']) : $pos_maxRank ?>;
+    let countEdu = <?= isset($_SESSION['edu_year']) ? count($_SESSION['edu_year']) : $edu_maxRank ?>;
+
+    <?php parseData(); ?>
+    console.log( data );
+    </script>
     <script src="js/script.js"></script>
+
+    <?php unsetSessionVars(); ?>
 </body>
 </html>

@@ -60,7 +60,7 @@ if( $row === false ) {
 <head>
 	<meta charset='UTF-8'>
 	<link rel='stylesheet' href='css/style.css'>
-	<title> Resume Registry - 52c8b8d5 </title>
+	<title> Resume Registry </title>
 </head>
 
 <body>
